@@ -8,6 +8,7 @@
     drawnGroups,
     drawnNodes,
     formatStats,
+    getAffectedNodes,
     inverseSprites,
     inverseSpritesActive,
     inverseTranslations,
@@ -150,6 +151,10 @@
   let cursor = 'unset';
 
   let hoveredNode: Node | undefined;
+
+  $: affectedSkills = circledNode
+    ? new Set(getAffectedNodes(skillTree.nodes[circledNode]).map((n) => n.skill))
+    : new Set<number>();
   $: render = (({ context, width, height }) => {
     const start = window.performance.now();
 
@@ -242,7 +247,6 @@
       context.strokeStyle = '#ad2b2b';
     }
 
-    let hoveredNodeActive = false;
     let newHoverNode: Node | undefined;
     Object.keys(drawnNodes).forEach((nodeId) => {
       const node = drawnNodes[nodeId];
@@ -313,7 +317,6 @@
 
       if (distance(rotatedPos, mousePos) < touchDistance / scaling) {
         newHoverNode = node;
-        hoveredNodeActive = active;
       }
     });
 
@@ -334,50 +337,47 @@
         special: false
       }));
 
-      if (!hoveredNode.isJewelSocket && hoveredNodeActive) {
-        if (hoveredNode.skill && seed && selectedJewel && selectedConqueror) {
-          const result = calculator.Calculate(
-            data.TreeToPassive[hoveredNode.skill].Index,
-            seed,
-            selectedJewel,
-            selectedConqueror
-          );
+      if (!hoveredNode.isJewelSocket && hoveredNode.skill && seed && selectedJewel && selectedConqueror && affectedSkills.has(hoveredNode.skill)) {
+        const result = calculator.Calculate(
+          data.TreeToPassive[hoveredNode.skill].Index,
+          seed,
+          selectedJewel,
+          selectedConqueror
+        );
 
-          if (result) {
-            if ('AlternatePassiveSkill' in result && result.AlternatePassiveSkill) {
-              nodeStats = [];
-              nodeName = result.AlternatePassiveSkill.Name;
+        if (result) {
+          if ('AlternatePassiveSkill' in result && result.AlternatePassiveSkill) {
+            nodeStats.push({ text: result.AlternatePassiveSkill.Name, special: true });
 
-              if ('StatsKeys' in result.AlternatePassiveSkill) {
-                result.AlternatePassiveSkill.StatsKeys.forEach((statId, i) => {
+            if ('StatsKeys' in result.AlternatePassiveSkill) {
+              result.AlternatePassiveSkill.StatsKeys.forEach((statId, i) => {
+                const stat = data.GetStatByIndex(statId);
+                const translation = inverseTranslations[stat.ID] || '';
+                if (translation) {
+                  nodeStats.push({
+                    text: formatStats(translation, result.StatRolls[i]) || stat.ID,
+                    special: true
+                  });
+                }
+              });
+            }
+          }
+
+          if (result.AlternatePassiveAdditionInformations) {
+            result.AlternatePassiveAdditionInformations.forEach((info) => {
+              if ('StatsKeys' in info.AlternatePassiveAddition) {
+                info.AlternatePassiveAddition.StatsKeys.forEach((statId, i) => {
                   const stat = data.GetStatByIndex(statId);
                   const translation = inverseTranslations[stat.ID] || '';
                   if (translation) {
                     nodeStats.push({
-                      text: formatStats(translation, result.StatRolls[i]) || stat.ID,
+                      text: formatStats(translation, info.StatRolls[i]) || stat.ID,
                       special: true
                     });
                   }
                 });
               }
-            }
-
-            if (result.AlternatePassiveAdditionInformations) {
-              result.AlternatePassiveAdditionInformations.forEach((info) => {
-                if ('StatsKeys' in info.AlternatePassiveAddition) {
-                  info.AlternatePassiveAddition.StatsKeys.forEach((statId, i) => {
-                    const stat = data.GetStatByIndex(statId);
-                    const translation = inverseTranslations[stat.ID] || '';
-                    if (translation) {
-                      nodeStats.push({
-                        text: formatStats(translation, info.StatRolls[i]) || stat.ID,
-                        special: true
-                      });
-                    }
-                  });
-                }
-              });
-            }
+            });
           }
         }
       }
@@ -402,12 +402,12 @@
       if (nodeStats && nodeStats.length > 0) {
         nodeStats.forEach((stat) => {
           if (allLines.length > 0) {
-            offset += 5;
+            offset += 3;
           }
 
           stat.text.split('\n').forEach((line) => {
             if (allLines.length > 0) {
-              offset += 10;
+              offset += 5;
             }
 
             const lines = wrapText(line, context, maxWidth - padding);
@@ -417,7 +417,7 @@
                 offset,
                 special: stat.special
               });
-              offset += 20;
+              offset += 16;
             });
           });
         });
