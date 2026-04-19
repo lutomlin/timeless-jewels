@@ -388,96 +388,35 @@ const tradeStatNames: { [key: number]: { [key: string]: string } } = {
 };
 
 export const constructQuery = (jewel: number, conqueror: string, result: SearchWithSeed[], anyConqueror = false) => {
-  const max_filter_length = 45;
-  const max_filters = 4;
-  const max_query_length = max_filter_length * max_filters;
-  const final_query = [];
+  const max_filter_length = 80; // Top 20 search of any conqueror, top 80 for one? Trade site can handle like ~180 maximum, 190 too many
   const conquerors = Object.keys(tradeStatNames[jewel]);
-  const stat: {
-    type: string;
-    value: { min: number };
-    filters: { id: string; value: { min: number; max: number }; disabled?: boolean }[];
-    disabled: boolean;
-  } = {
+
+  const capped_filter = {
     type: 'count',
     value: { min: 1 },
     filters: [],
     disabled: false
   };
 
-  // single seed case
-  if (result.length == 1) {
-    for (const conq of conquerors) {
-      const disabled: boolean = !anyConqueror && conq != conqueror;
-      if (!disabled) {
-        stat.filters.push({
-          id: tradeStatNames[jewel][conq],
-          value: {
-            min: result[0].seed,
-            max: result[0].seed
-          }
-        });
-      }
-    }
-
-    final_query.push(stat);
-    // too many results case
-  } else if (result.length > max_query_length) {
-    if (anyConqueror) {
+  for (const r of result) {
+    const max_stats = anyConqueror ? max_filter_length - 1 : (max_filter_length - 1) / conquerors.length;
+    if (capped_filter.filters.length <= max_stats) {
       for (const conq of conquerors) {
-        final_query.push({
-          type: 'count',
-          value: { min: 1 },
-          filters: result.slice(0, max_filter_length).map((r) => ({
+        if (anyConqueror || conq === conqueror) {
+          capped_filter.filters.push({
             id: tradeStatNames[jewel][conq],
-            value: { min: r.seed, max: r.seed }
-          })),
-          disabled: false
-        });
+            value: {
+              min: r.seed,
+              max: r.seed
+            }
+          });
+        }
       }
-    } else {
-      for (let i = 0; i < max_filters; i++) {
-        final_query.push({
-          type: 'count',
-          value: { min: 1 },
-          filters: [],
-          disabled: i != 0
-        });
-      }
-
-      for (const [i, r] of result.slice(0, max_query_length).entries()) {
-        const index = Math.floor(i / max_filter_length);
-
-        final_query[index].filters.push({
-          id: tradeStatNames[jewel][conqueror],
-          value: {
-            min: r.seed,
-            max: r.seed
-          }
-        });
-      }
-    }
-  } else {
-    for (const conq of conquerors) {
-      stat.disabled = !anyConqueror && conq != conqueror;
-
-      for (const r of result) {
-        stat.filters.push({
-          id: tradeStatNames[jewel][conq],
-          value: {
-            min: r.seed,
-            max: r.seed
-          }
-        });
-      }
-
-      if (stat.filters.length > max_filter_length) {
-        stat.filters = stat.filters.slice(0, max_filter_length);
-      }
-
-      final_query.push(stat);
     }
   }
+
+  const final_query = [];
+  final_query.push(capped_filter);
 
   return {
     query: {
