@@ -50,30 +50,45 @@ const obj = {
         });
 
       if (args.anoints > 0) {
-        Object.keys(searchResult[seed])
+        const seedResult = (searchResult ?? {})[seed] ?? {};
+        const anointSkillIDs = Object.keys(seedResult)
           .filter((skillIDStr) => anointSet.has(parseInt(skillIDStr)))
-          .forEach((skillIDStr) => {
-            const skillID = parseInt(skillIDStr);
-            const nodeStatCounts: Record<number, number> = {};
-            Object.keys(searchResult[seed][skillID]).forEach((st) => {
-              const n = parseInt(st);
-              nodeStatCounts[n] = (nodeStatCounts[n] || 0) + 1;
-            });
-            let nodeScore = 0;
-            for (const stat of args.stats) {
-              const count = nodeStatCounts[stat.id] || 0;
-              const effectiveCount = stat.max > 0 ? Math.min(count, stat.max) : count;
-              nodeScore += effectiveCount * stat.weight;
+          .map((skillIDStr) => parseInt(skillIDStr));
+
+        const runningCounts = { ...statCounts };
+        const scoreCandidate = (skillID: number) => {
+          let nodeScore = 0;
+          const nodeStats = seedResult[skillID] ?? {};
+          for (const stat of args.stats) {
+            const count = nodeStats[stat.id] !== undefined ? 1 : 0;
+            const remainingCap = stat.max > 0 ? Math.max(0, stat.max - (runningCounts[stat.id] || 0)) : count;
+            const effectiveCount = stat.max > 0 ? Math.min(count, remainingCap) : count;
+            nodeScore += effectiveCount * stat.weight;
+          }
+          return nodeScore;
+        };
+
+        const remaining = new Set(anointSkillIDs);
+        for (let i = 0; i < args.anoints && remaining.size > 0; i++) {
+          let bestID = -1;
+          let bestScore = -1;
+          for (const skillID of remaining) {
+            const score = scoreCandidate(skillID);
+            if (score > bestScore) {
+              bestScore = score;
+              bestID = skillID;
             }
-            anointCandidates.push({ score: nodeScore, skillID });
+          }
+          if (bestID === -1) {
+            break;
+          }
+          remaining.delete(bestID);
+          anointCandidates.push({ score: bestScore, skillID: bestID });
+          Object.keys(seedResult[bestID] ?? {}).forEach((st) => {
+            const n = parseInt(st);
+            runningCounts[n] = (runningCounts[n] || 0) + 1;
           });
-        anointCandidates.sort((a, b) => b.score - a.score);
-        for (let i = 0; i < Math.min(args.anoints, anointCandidates.length); i++) {
-          const { skillID } = anointCandidates[i];
-          skills.push({
-            passive: passiveToTree[skillID],
-            stats: searchResult[seed][skillID]
-          });
+          skills.push({ passive: passiveToTree[bestID], stats: seedResult[bestID] ?? {} });
         }
       }
 
