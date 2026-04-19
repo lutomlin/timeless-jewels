@@ -49,13 +49,13 @@ const obj = {
           };
         });
 
+      const runningCounts = { ...statCounts };
+
       if (args.anoints > 0) {
         const seedResult = (searchResult ?? {})[seed] ?? {};
         const anointSkillIDs = Object.keys(seedResult)
           .filter((skillIDStr) => anointSet.has(parseInt(skillIDStr)))
           .map((skillIDStr) => parseInt(skillIDStr));
-
-        const runningCounts = { ...statCounts };
         const scoreCandidate = (skillID: number) => {
           let nodeScore = 0;
           const nodeStats = seedResult[skillID] ?? {};
@@ -88,7 +88,10 @@ const obj = {
             const n = parseInt(st);
             runningCounts[n] = (runningCounts[n] || 0) + 1;
           });
-          skills.push({ passive: passiveToTree[bestID], stats: seedResult[bestID] ?? {} });
+          skills.push({
+            passive: passiveToTree[bestID],
+            stats: (seedResult[bestID] ?? {}) as { [key: string]: number }
+          });
         }
       }
 
@@ -109,7 +112,7 @@ const obj = {
           skills: skills,
           seed,
           weight,
-          statCounts
+          statCounts: runningCounts
         }
       ];
     });
