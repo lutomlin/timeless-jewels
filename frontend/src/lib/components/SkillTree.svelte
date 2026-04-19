@@ -30,6 +30,9 @@
   export let disabled: number[] = [];
   export let highlightJewels = false;
 
+  $: highlightedSet = new Set(highlighted);
+  $: disabledSet = new Set(disabled);
+
   const slowTime = derived(t, (values) => {
     if ((!highlighted || !highlighted.length) && !highlightJewels) {
       return 0;
@@ -152,6 +155,9 @@
 
   let hoveredNode: Node | undefined;
 
+  let calculateCache: Record<number, ReturnType<typeof calculator.Calculate>> = {};
+  $: { seed; selectedJewel; selectedConqueror; calculateCache = {}; }
+
   $: affectedSkills = circledNode
     ? new Set(getAffectedNodes(skillTree.nodes[circledNode]).map((n) => n.skill))
     : new Set<number>();
@@ -260,7 +266,7 @@
         }
       }
 
-      if (disabled.indexOf(node.skill) >= 0) {
+      if (disabledSet.has(node.skill)) {
         active = false;
       }
 
@@ -307,7 +313,7 @@
         }
       }
 
-      if (highlighted.indexOf(node.skill) >= 0 || (highlightJewels && node.isJewelSocket)) {
+      if (highlightedSet.has(node.skill) || (highlightJewels && node.isJewelSocket)) {
         context.strokeStyle = `hsl(${$slowTime}, 100%, 50%)`;
         context.lineWidth = 3;
         context.beginPath();
@@ -345,12 +351,11 @@
         selectedConqueror &&
         affectedSkills.has(hoveredNode.skill)
       ) {
-        const result = calculator.Calculate(
-          data.TreeToPassive[hoveredNode.skill].Index,
-          seed,
-          selectedJewel,
-          selectedConqueror
-        );
+        const passiveIndex = data.TreeToPassive[hoveredNode.skill].Index;
+        if (!(passiveIndex in calculateCache)) {
+          calculateCache[passiveIndex] = calculator.Calculate(passiveIndex, seed, selectedJewel, selectedConqueror);
+        }
+        const result = calculateCache[passiveIndex];
 
         if (result) {
           if ('AlternatePassiveSkill' in result && result.AlternatePassiveSkill) {
