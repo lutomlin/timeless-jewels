@@ -347,7 +347,8 @@
 
         if (result) {
           if ('AlternatePassiveSkill' in result && result.AlternatePassiveSkill) {
-            nodeStats.push({ text: result.AlternatePassiveSkill.Name, special: true });
+            nodeStats.push({ text: '', special: false });
+            nodeStats.push({ text: `Replaced By: ${result.AlternatePassiveSkill.Name}`, special: true });
 
             if ('StatsKeys' in result.AlternatePassiveSkill) {
               result.AlternatePassiveSkill.StatsKeys.forEach((statId, i) => {
