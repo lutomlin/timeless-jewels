@@ -465,7 +465,11 @@
       // No redraw — canvas content is unchanged, just shifted by CSS
       return;
     }
-    mousePos = { x: event.clientX, y: event.clientY };
+    if (event.target === canvasEl) {
+      mousePos = { x: event.clientX, y: event.clientY };
+    } else {
+      mousePos = { x: Number.MIN_VALUE, y: Number.MIN_VALUE };
+    }
     scheduleRender();
   };
 
@@ -515,10 +519,11 @@
 
 <svelte:window on:pointerup={mouseUp} on:pointermove={mouseMove} on:resize={resize} />
 
-<div
-  style="touch-action: none; cursor: {cursor}; position: relative; overflow: hidden; width: 100vw; height: 100vh;"
-  on:pointerdown={mouseDown}
-  on:wheel={onScroll}>
-  <canvas bind:this={canvasEl} style="position: absolute; left: -{overscroll}px; top: -{overscroll}px;" />
+<div style="touch-action: none; cursor: {cursor}; position: relative; overflow: hidden; width: 100vw; height: 100vh;">
+  <canvas
+    bind:this={canvasEl}
+    style="position: absolute; left: -{overscroll}px; top: -{overscroll}px;"
+    on:pointerdown={mouseDown}
+    on:wheel={onScroll} />
   <slot />
 </div>
