@@ -3,7 +3,7 @@
   import type { RenderFunc, Node } from '../skill_tree_types';
   import {
     baseJewelRadius,
-    calculateNodePos,
+    nodeWorldPositions,
     distance,
     drawnGroups,
     drawnNodes,
@@ -190,7 +190,8 @@
     Object.keys(drawnNodes).forEach((nodeId) => {
       const node = drawnNodes[nodeId];
       const angle = orbitAngleAt(node.orbit, node.orbitIndex);
-      const rotatedPos = calculateNodePos(node, offsetX, offsetY, scaling);
+      const wp = nodeWorldPositions[parseInt(nodeId)];
+      const rotatedPos = toCanvasCoords(wp.x, wp.y, offsetX, offsetY, scaling);
 
       node.out?.forEach((o) => {
         if (!drawnNodes[parseInt(o)]) {
@@ -217,7 +218,8 @@
         }
 
         const targetAngle = orbitAngleAt(targetNode.orbit, targetNode.orbitIndex);
-        const targetRotatedPos = calculateNodePos(targetNode, offsetX, offsetY, scaling);
+        const twp = nodeWorldPositions[parseInt(o)];
+        const targetRotatedPos = toCanvasCoords(twp.x, twp.y, offsetX, offsetY, scaling);
 
         context.beginPath();
 
@@ -249,14 +251,16 @@
 
     let circledNodePos: Point;
     if (circledNode) {
-      circledNodePos = calculateNodePos(drawnNodes[circledNode], offsetX, offsetY, scaling);
+      const cwp = nodeWorldPositions[circledNode];
+      circledNodePos = toCanvasCoords(cwp.x, cwp.y, offsetX, offsetY, scaling);
       context.strokeStyle = '#ad2b2b';
     }
 
     let newHoverNode: Node | undefined;
     Object.keys(drawnNodes).forEach((nodeId) => {
       const node = drawnNodes[nodeId];
-      const rotatedPos = calculateNodePos(node, offsetX, offsetY, scaling);
+      const wp2 = nodeWorldPositions[parseInt(nodeId)];
+      const rotatedPos = toCanvasCoords(wp2.x, wp2.y, offsetX, offsetY, scaling);
       let touchDistance = 0;
 
       let active = false;

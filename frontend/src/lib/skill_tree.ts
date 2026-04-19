@@ -13,6 +13,30 @@ export const inverseTranslations: Record<string, Translation> = {};
 
 export const passiveToTree: Record<number, number> = {};
 
+export type Point = {
+  x: number;
+  y: number;
+};
+
+export const nodeWorldPositions: Record<number, Point> = {};
+
+export const orbit16Angles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
+export const orbit40Angles = [
+  0, 10, 20, 30, 40, 45, 50, 60, 70, 80, 90, 100, 110, 120, 130, 135, 140, 150, 160, 170, 180, 190, 200, 210, 220, 225,
+  230, 240, 250, 260, 270, 280, 290, 300, 310, 315, 320, 330, 340, 350
+];
+
+export const orbitAngleAt = (orbit: number, index: number): number => {
+  const nodesInOrbit = skillTree.constants.skillsPerOrbit[orbit];
+  if (nodesInOrbit == 16) {
+    return orbit16Angles[orbit16Angles.length - index] || 0;
+  } else if (nodesInOrbit == 40) {
+    return orbit40Angles[orbit40Angles.length - index] || 0;
+  } else {
+    return 360 - (360 / nodesInOrbit) * index;
+  }
+};
+
 export const loadSkillTree = () => {
   skillTree = JSON.parse(data.SkillTree);
   console.log('Loaded skill tree', skillTree);
@@ -52,6 +76,22 @@ export const loadSkillTree = () => {
       drawnGroups[parseInt(groupId)] = group;
       drawnNodes[parseInt(nodeId)] = node;
     });
+  });
+
+  Object.entries(drawnNodes).forEach(([nodeIdStr, node]) => {
+    const nodeId = parseInt(nodeIdStr);
+    if (node.group === undefined || node.orbit === undefined || node.orbitIndex === undefined) {
+      nodeWorldPositions[nodeId] = { x: 0, y: 0 };
+      return;
+    }
+    const group = skillTree.groups[node.group];
+    const angle = orbitAngleAt(node.orbit, node.orbitIndex);
+    const radians = (Math.PI / 180) * angle;
+    const r = skillTree.constants.orbitRadii[node.orbit];
+    nodeWorldPositions[nodeId] = {
+      x: group.x - Math.sin(radians) * r,
+      y: group.y - Math.cos(radians) * r
+    };
   });
 
   Object.keys(skillTree.sprites.keystoneInactive['0.3835'].coords).forEach(
@@ -159,11 +199,6 @@ const indexHandlers: Record<string, number> = {
   divide_by_four: 4
 };
 
-export type Point = {
-  x: number;
-  y: number;
-};
-
 export const toCanvasCoords = (x: number, y: number, offsetX: number, offsetY: number, scaling: number): Point => ({
   x: (Math.abs(skillTree.min_x) + x + offsetX) / scaling,
   y: (Math.abs(skillTree.min_y) + y + offsetY) / scaling
@@ -179,23 +214,6 @@ export const rotateAroundPoint = (center: Point, target: Point, angle: number): 
     x: nx,
     y: ny
   };
-};
-
-export const orbit16Angles = [0, 30, 45, 60, 90, 120, 135, 150, 180, 210, 225, 240, 270, 300, 315, 330];
-export const orbit40Angles = [
-  0, 10, 20, 30, 40, 45, 50, 60, 70, 80, 90, 100, 110, 120, 130, 135, 140, 150, 160, 170, 180, 190, 200, 210, 220, 225,
-  230, 240, 250, 260, 270, 280, 290, 300, 310, 315, 320, 330, 340, 350
-];
-
-export const orbitAngleAt = (orbit: number, index: number): number => {
-  const nodesInOrbit = skillTree.constants.skillsPerOrbit[orbit];
-  if (nodesInOrbit == 16) {
-    return orbit16Angles[orbit16Angles.length - index] || 0;
-  } else if (nodesInOrbit == 40) {
-    return orbit40Angles[orbit40Angles.length - index] || 0;
-  } else {
-    return 360 - (360 / nodesInOrbit) * index;
-  }
 };
 
 export const calculateNodePos = (node: Node, offsetX: number, offsetY: number, scaling: number): Point => {
@@ -285,9 +303,10 @@ export const baseJewelRadius = 1800;
 export const getAffectedNodes = (socket: Node): Node[] => {
   const result: Node[] = [];
 
-  const socketPos = calculateNodePos(socket, 0, 0, 1);
-  for (const node of Object.values(drawnNodes)) {
-    const nodePos = calculateNodePos(node, 0, 0, 1);
+  const socketPos = socket.skill !== undefined ? nodeWorldPositions[socket.skill] : calculateNodePos(socket, 0, 0, 1);
+  for (const [nodeIdStr, node] of Object.entries(drawnNodes)) {
+    const nodeId = parseInt(nodeIdStr);
+    const nodePos = nodeWorldPositions[nodeId] ?? calculateNodePos(node, 0, 0, 1);
 
     if (distance(nodePos, socketPos) < baseJewelRadius) {
       result.push(node);
