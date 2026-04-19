@@ -18,3 +18,38 @@ Specifically, this project depends on the following data tables:
 * Passive Skills
 * Stats
 * Translations
+
+##
+
+### Build/Run instructions:
+
+First, do the WASM build to make the Go layer for RNG generation:
+
+```
+GOOS=js GOARCH=wasm go build -o frontend/static/calculator.wasm ./wasm
+```
+
+Next, make sure pnpm/Node.js are installed, and install required dependencies:
+
+```
+cd frontend && pnpm install
+```
+
+Then run the Svelte UI (from the `frontend` directory):
+
+```
+pnpm dev
+```
+
+## Pulling in new data
+
+Copy across data extracted with https://github.com/Vilsol/go-pob-data into the `data` folder.
+Once you've moved the files over, run:
+
+```
+python python generate_possible_stats.json.gz.py
+```
+
+to re-generate possible_stats JSON from scratch. Then re-run the WASM build, as above, and restart the Svelte server.
+
+Commit every copied file that is changed; delete every file that is new - unless there is new data being added for a new feature.
