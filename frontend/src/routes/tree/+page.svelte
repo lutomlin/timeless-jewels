@@ -164,7 +164,21 @@
 
   let results = false;
   let minTotalWeight = 0;
+  let maxResults = 20;
   let anoints = 0;
+
+  $: cappedSearchResults = searchResults
+    ? (() => {
+        const raw = searchResults.raw.slice(0, maxResults);
+        const grouped: typeof searchResults.grouped = {};
+        for (const r of raw) {
+          const len = r.skills.length;
+          if (!grouped[len]) grouped[len] = [];
+          grouped[len].push(r);
+        }
+        return { raw, grouped };
+      })()
+    : undefined;
   let searching = false;
   let currentSeed = 0;
   let searchResults: SearchResults;
@@ -521,7 +535,7 @@
                     openTrade(
                       searchJewel,
                       searchConqueror,
-                      searchResults.raw,
+                      cappedSearchResults.raw,
                       platform.value,
                       league.value,
                       anyConqueror
@@ -688,6 +702,10 @@
                       <input type="number" min="0" bind:value={minTotalWeight} />
                     </div>
                     <div class="flex flex-row items-center">
+                      <div class="mr-2 min-w-fit">Max Results:</div>
+                      <input type="number" min="1" bind:value={maxResults} />
+                    </div>
+                    <div class="flex flex-row items-center">
                       <div class="mr-2 min-w-fit">Anoints:</div>
                       <input type="number" min="0" bind:value={anoints} />
                     </div>
@@ -742,9 +760,9 @@
           {/if}
         {/if}
 
-        {#if searchResults && results}
+        {#if cappedSearchResults && results}
           <SearchResults
-            {searchResults}
+            searchResults={cappedSearchResults}
             {groupResults}
             {highlight}
             jewel={searchJewel}
