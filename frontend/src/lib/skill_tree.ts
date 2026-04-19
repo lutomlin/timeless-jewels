@@ -384,12 +384,18 @@ const tradeStatNames: { [key: number]: { [key: string]: string } } = {
   }
 };
 
-export const constructQuery = (jewel: number, conqueror: string, result: SearchWithSeed[]) => {
+export const constructQuery = (jewel: number, conqueror: string, result: SearchWithSeed[], anyConqueror = false) => {
   const max_filter_length = 45;
   const max_filters = 4;
   const max_query_length = max_filter_length * max_filters;
   const final_query = [];
-  const stat = {
+  const conquerors = Object.keys(tradeStatNames[jewel]);
+  const stat: {
+    type: string;
+    value: { min: number };
+    filters: { id: string; value: { min: number; max: number }; disabled?: boolean }[];
+    disabled: boolean;
+  } = {
     type: 'count',
     value: { min: 1 },
     filters: [],
@@ -398,43 +404,59 @@ export const constructQuery = (jewel: number, conqueror: string, result: SearchW
 
   // single seed case
   if (result.length == 1) {
-    for (const conq of Object.keys(tradeStatNames[jewel])) {
-      stat.filters.push({
-        id: tradeStatNames[jewel][conq],
-        value: {
-          min: result[0].seed,
-          max: result[0].seed
-        },
-        disabled: conq != conqueror
-      });
+    for (const conq of conquerors) {
+      const disabled: boolean = !anyConqueror && conq != conqueror;
+      if (!disabled) {
+        stat.filters.push({
+          id: tradeStatNames[jewel][conq],
+          value: {
+            min: result[0].seed,
+            max: result[0].seed
+          }
+        });
+      }
     }
 
     final_query.push(stat);
     // too many results case
   } else if (result.length > max_query_length) {
-    for (let i = 0; i < max_filters; i++) {
-      final_query.push({
-        type: 'count',
-        value: { min: 1 },
-        filters: [],
-        disabled: i != 0
-      });
-    }
+    if (anyConqueror) {
+      for (const conq of conquerors) {
+        final_query.push({
+          type: 'count',
+          value: { min: 1 },
+          filters: result.slice(0, max_filter_length).map((r) => ({
+            id: tradeStatNames[jewel][conq],
+            value: { min: r.seed, max: r.seed }
+          })),
+          disabled: false
+        });
+      }
+    } else {
+      for (let i = 0; i < max_filters; i++) {
+        final_query.push({
+          type: 'count',
+          value: { min: 1 },
+          filters: [],
+          disabled: i != 0
+        });
+      }
 
-    for (const [i, r] of result.slice(0, max_query_length).entries()) {
-      const index = Math.floor(i / max_filter_length);
+      for (const [i, r] of result.slice(0, max_query_length).entries()) {
+        const index = Math.floor(i / max_filter_length);
 
-      final_query[index].filters.push({
-        id: tradeStatNames[jewel][conqueror],
-        value: {
-          min: r.seed,
-          max: r.seed
-        }
-      });
+        final_query[index].filters.push({
+          id: tradeStatNames[jewel][conqueror],
+          value: {
+            min: r.seed,
+            max: r.seed
+          }
+        });
+      }
     }
   } else {
-    for (const conq of Object.keys(tradeStatNames[jewel])) {
-      stat.disabled = conq != conqueror;
+    for (const conq of conquerors) {
+      stat.disabled = !anyConqueror && conq != conqueror;
 
       for (const r of result) {
         stat.filters.push({
@@ -472,7 +494,8 @@ export const openTrade = (
   conqueror: string,
   results: SearchWithSeed[],
   platform: string,
-  league: string
+  league: string,
+  anyConqueror = false
 ) => {
   if (!platform || typeof platform !== 'string') {
     platform = 'PC';
@@ -485,7 +508,7 @@ export const openTrade = (
   const url = new URL(
     `https://www.pathofexile.com/trade/search${platform === 'PC' ? '' : `/${platform.toLowerCase()}`}/${league}`
   );
-  url.searchParams.set('q', JSON.stringify(constructQuery(jewel, conqueror, results)));
+  url.searchParams.set('q', JSON.stringify(constructQuery(jewel, conqueror, results, anyConqueror)));
 
   console.log('opening trade', url);
 

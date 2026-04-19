@@ -244,6 +244,10 @@
     localStorage.getItem('groupResults') === null ? true : localStorage.getItem('groupResults') === 'true';
   $: localStorage.setItem('groupResults', groupResults ? 'true' : 'false');
 
+  let anyConqueror =
+    localStorage.getItem('anyConqueror') === null ? false : localStorage.getItem('anyConqueror') === 'true';
+  $: localStorage.setItem('anyConqueror', anyConqueror ? 'true' : 'false');
+
   type CombinedResult = {
     id: string;
     rawStat: string;
@@ -433,16 +437,18 @@
   let collapsed = false;
 
   const platforms = [
-  {
-    value: 'PC',
-    label: 'PC'
-  }, {
-    value: 'Xbox',
-    label: 'Xbox'
-  }, {
-    value: 'Playstation',
-    label: 'Playstation'
-  }
+    {
+      value: 'PC',
+      label: 'PC'
+    },
+    {
+      value: 'Xbox',
+      label: 'Xbox'
+    },
+    {
+      value: 'Playstation',
+      label: 'Playstation'
+    }
   ];
 
   let platform = platforms.find((p) => p.value === localStorage.getItem('platform')) || platforms[0];
@@ -496,13 +502,21 @@
             </h3>
           </div>
           {#if searchResults}
-            <div class="flex flex-row gap-2">
+            <div class="flex flex-row gap-1">
               {#if results}
                 <Select items={leagues} bind:value={league} on:change={updateUrl} clearable={false} />
                 <Select items={platforms} bind:value={platform} on:change={updateUrl} clearable={false} />
                 <button
                   class="p-1 px-3 bg-blue-500/40 rounded disabled:bg-blue-900/40"
-                  on:click={() => openTrade(searchJewel, searchConqueror, searchResults.raw, platform.value, league.value)}
+                  on:click={() =>
+                    openTrade(
+                      searchJewel,
+                      searchConqueror,
+                      searchResults.raw,
+                      platform.value,
+                      league.value,
+                      anyConqueror
+                    )}
                   disabled={!searchResults}>
                   Trade
                 </button>
@@ -512,6 +526,14 @@
                   on:click={() => (groupResults = !groupResults)}
                   disabled={!searchResults}>
                   Grouped
+                </button>
+                <button
+                  class="p-1 px-3 rounded disabled:bg-neutral-900/40 {anyConqueror
+                    ? 'bg-blue-500/40'
+                    : 'bg-neutral-500/40'}"
+                  on:click={() => (anyConqueror = !anyConqueror)}
+                  disabled={!searchResults}>
+                  Any Conqueror
                 </button>
               {/if}
               <button class="bg-neutral-100/20 px-4 p-1 rounded" on:click={() => (results = !results)}>
@@ -704,7 +726,15 @@
         {/if}
 
         {#if searchResults && results}
-          <SearchResults {searchResults} {groupResults} {highlight} jewel={searchJewel} conqueror={searchConqueror} platform={platform.value} league={league.value} />
+          <SearchResults
+            {searchResults}
+            {groupResults}
+            {highlight}
+            jewel={searchJewel}
+            conqueror={searchConqueror}
+            platform={platform.value}
+            league={league.value}
+            {anyConqueror} />
         {/if}
       </div>
     </div>
