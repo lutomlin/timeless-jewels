@@ -19,30 +19,63 @@ const obj = {
   },
   async search(args: ReverseSearchConfig, callback: (seed: number) => Promise<void>): Promise<SearchResults> {
     const searchResult = await calculator.ReverseSearch(
-      args.nodes,
+      [...args.nodes, ...args.anointNodes],
       args.stats.map((s) => s.id),
       args.jewel,
       args.conqueror,
       callback
     );
 
+    const anointSet = new Set(args.anointNodes);
+
     const searchGrouped: { [key: number]: SearchWithSeed[] } = {};
     Object.keys(searchResult).forEach((seedStr) => {
       const seed = parseInt(seedStr);
 
       const statCounts: Record<number, number> = {};
-      const skills = Object.keys(searchResult[seed]).map((skillIDStr) => {
-        const skillID = parseInt(skillIDStr);
-        Object.keys(searchResult[seed][skillID]).forEach((st) => {
-          const n = parseInt(st);
-          statCounts[n] = (statCounts[n] || 0) + 1;
+      const anointCandidates: { score: number; skillID: number }[] = [];
+
+      const skills = Object.keys(searchResult[seed])
+        .filter((skillIDStr) => !anointSet.has(parseInt(skillIDStr)))
+        .map((skillIDStr) => {
+          const skillID = parseInt(skillIDStr);
+          Object.keys(searchResult[seed][skillID]).forEach((st) => {
+            const n = parseInt(st);
+            statCounts[n] = (statCounts[n] || 0) + 1;
+          });
+          return {
+            passive: passiveToTree[skillID],
+            stats: searchResult[seed][skillID]
+          };
         });
 
-        return {
-          passive: passiveToTree[skillID],
-          stats: searchResult[seed][skillID]
-        };
-      });
+      if (args.anoints > 0) {
+        Object.keys(searchResult[seed])
+          .filter((skillIDStr) => anointSet.has(parseInt(skillIDStr)))
+          .forEach((skillIDStr) => {
+            const skillID = parseInt(skillIDStr);
+            const nodeStatCounts: Record<number, number> = {};
+            Object.keys(searchResult[seed][skillID]).forEach((st) => {
+              const n = parseInt(st);
+              nodeStatCounts[n] = (nodeStatCounts[n] || 0) + 1;
+            });
+            let nodeScore = 0;
+            for (const stat of args.stats) {
+              const count = nodeStatCounts[stat.id] || 0;
+              const effectiveCount = stat.max > 0 ? Math.min(count, stat.max) : count;
+              nodeScore += effectiveCount * stat.weight;
+            }
+            anointCandidates.push({ score: nodeScore, skillID });
+          });
+        anointCandidates.sort((a, b) => b.score - a.score);
+        for (let i = 0; i < Math.min(args.anoints, anointCandidates.length); i++) {
+          const { skillID } = anointCandidates[i];
+          skills.push({
+            passive: passiveToTree[skillID],
+            stats: searchResult[seed][skillID]
+          });
+        }
+      }
 
       let weight = 0;
       for (const stat of args.stats) {
@@ -50,8 +83,11 @@ const obj = {
         const effectiveCount = stat.max > 0 ? Math.min(count, stat.max) : count;
         weight += effectiveCount * stat.weight;
       }
+      for (let i = 0; i < Math.min(args.anoints, anointCandidates.length); i++) {
+        weight += anointCandidates[i].score;
+      }
 
-      const len = Object.keys(searchResult[seed]).length;
+      const len = skills.length;
       searchGrouped[len] = [
         ...(searchGrouped[len] || []),
         {

@@ -164,6 +164,7 @@
 
   let results = false;
   let minTotalWeight = 0;
+  let anoints = 0;
   let searching = false;
   let currentSeed = 0;
   let searchResults: SearchResults;
@@ -187,6 +188,12 @@
         .map((n) => data.TreeToPassive[n.skill])
         .filter((n) => !!n)
         .map((n) => n.Index),
+      anointNodes: affectedNodes
+        .filter((n) => n.isNotable && disabled.has(n.skill))
+        .map((n) => data.TreeToPassive[n.skill])
+        .filter((n) => !!n)
+        .map((n) => n.Index),
+      anoints,
       stats: Object.keys(selectedStats).map((stat) => selectedStats[stat]),
       minTotalWeight
     };
@@ -675,10 +682,14 @@
                       </div>
                     {/each}
                   </div>
-                  <div class="flex flex-col mt-2">
+                  <div class="flex flex-row items-center mt-2 gap-4">
                     <div class="flex flex-row items-center">
                       <div class="mr-2 min-w-fit">Min Total Weight:</div>
                       <input type="number" min="0" bind:value={minTotalWeight} />
+                    </div>
+                    <div class="flex flex-row items-center">
+                      <div class="mr-2 min-w-fit">Anoints:</div>
+                      <input type="number" min="0" bind:value={anoints} />
                     </div>
                   </div>
                   <div class="flex flex-col mt-4">
@@ -704,7 +715,7 @@
                       <button
                         class="p-2 px-2 bg-yellow-500/40 rounded disabled:bg-yellow-900/40 flex-grow"
                         on:click={deselectAll}
-                        disabled={searching || disabled.size >= affectedNodes.length}>
+                        disabled={searching}>
                         Deselect
                       </button>
                     </div>
