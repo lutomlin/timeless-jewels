@@ -71,6 +71,7 @@
       selectedStats[nStat] = {
         weight: 1,
         min: 0,
+        max: 0,
         id: nStat
       };
     });
@@ -141,6 +142,7 @@
     selectedStats[stat.detail.value] = {
       weight: 1,
       min: 0,
+      max: 0,
       id: stat.detail.value
     };
     selectedStats = selectedStats;
@@ -660,6 +662,10 @@
                           <div class="mr-4 flex flex-row items-center">
                             <div class="mr-2">Min:</div>
                             <input type="number" min="0" bind:value={selectedStats[s].min} />
+                          </div>
+                          <div class="mr-4 flex flex-row items-center">
+                            <div class="mr-2">Max:</div>
+                            <input type="number" min="0" bind:value={selectedStats[s].max} />
                           </div>
                           <div class="flex flex-row items-center">
                             <div class="mr-2">Weight:</div>

@@ -30,15 +30,12 @@ const obj = {
     Object.keys(searchResult).forEach((seedStr) => {
       const seed = parseInt(seedStr);
 
-      let weight = 0;
-
       const statCounts: Record<number, number> = {};
       const skills = Object.keys(searchResult[seed]).map((skillIDStr) => {
         const skillID = parseInt(skillIDStr);
         Object.keys(searchResult[seed][skillID]).forEach((st) => {
           const n = parseInt(st);
           statCounts[n] = (statCounts[n] || 0) + 1;
-          weight += args.stats.find((s) => s.id == n)?.weight || 0;
         });
 
         return {
@@ -46,6 +43,13 @@ const obj = {
           stats: searchResult[seed][skillID]
         };
       });
+
+      let weight = 0;
+      for (const stat of args.stats) {
+        const count = statCounts[stat.id] || 0;
+        const effectiveCount = stat.max > 0 ? Math.min(count, stat.max) : count;
+        weight += effectiveCount * stat.weight;
+      }
 
       const len = Object.keys(searchResult[seed]).length;
       searchGrouped[len] = [
