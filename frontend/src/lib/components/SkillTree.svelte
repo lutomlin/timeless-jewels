@@ -331,13 +331,20 @@
     }
 
     if (hoveredNode) {
-      let nodeName = hoveredNode.name;
-      let nodeStats: { text: string; special: boolean }[] = (hoveredNode.stats || []).map((s) => ({
+      const nodeName = hoveredNode.name;
+      const nodeStats: { text: string; special: boolean }[] = (hoveredNode.stats || []).map((s) => ({
         text: s,
         special: false
       }));
 
-      if (!hoveredNode.isJewelSocket && hoveredNode.skill && seed && selectedJewel && selectedConqueror && affectedSkills.has(hoveredNode.skill)) {
+      if (
+        !hoveredNode.isJewelSocket &&
+        hoveredNode.skill &&
+        seed &&
+        selectedJewel &&
+        selectedConqueror &&
+        affectedSkills.has(hoveredNode.skill)
+      ) {
         const result = calculator.Calculate(
           data.TreeToPassive[hoveredNode.skill].Index,
           seed,
