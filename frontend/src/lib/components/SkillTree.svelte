@@ -40,8 +40,8 @@
 
   const startGroups = [427, 320, 226, 227, 323, 422, 329];
 
-  const titleFont = '25px Roboto Mono';
-  const statsFont = '17px Roboto Mono';
+  const titleFont = '25px Roboto';
+  const statsFont = '17px Roboto';
 
   let scaling = 10;
 
@@ -465,7 +465,7 @@
 
     context.fillStyle = '#ffffff';
     context.textAlign = 'right';
-    context.font = '12px Roboto Mono';
+    context.font = '12px Roboto';
 
     const end = window.performance.now();
 
