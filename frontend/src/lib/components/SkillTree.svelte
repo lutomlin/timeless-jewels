@@ -134,6 +134,8 @@
     scheduleRender();
   }
 
+  const overscroll = 400;
+
   let canvasEl: HTMLCanvasElement;
   let width = 0;
   let height = 0;
@@ -155,19 +157,24 @@
     const start = performance.now();
     const w = width;
     const h = height;
+    const cw = w + 2 * overscroll;
+    const ch = h + 2 * overscroll;
 
-    context.clearRect(0, 0, w, h);
+    context.clearRect(0, 0, cw, ch);
     context.fillStyle = '#080c11';
-    context.fillRect(0, 0, w, h);
+    context.fillRect(0, 0, cw, ch);
+
+    context.save();
+    context.translate(overscroll, overscroll);
 
     const jewelRadius = baseJewelRadius / scaling;
     const slowTime = highlighted.length > 0 || highlightJewels ? Math.round(performance.now() / 40) : 0;
 
     const margin = 200;
-    const visMinX = -Math.abs(skillTree.min_x) - offsetX - margin;
-    const visMaxX = -Math.abs(skillTree.min_x) - offsetX + w * scaling + margin;
-    const visMinY = -Math.abs(skillTree.min_y) - offsetY - margin;
-    const visMaxY = -Math.abs(skillTree.min_y) - offsetY + h * scaling + margin;
+    const visMinX = -Math.abs(skillTree.min_x) - offsetX - (overscroll + margin) * scaling;
+    const visMaxX = -Math.abs(skillTree.min_x) - offsetX + (w + overscroll + margin) * scaling;
+    const visMinY = -Math.abs(skillTree.min_y) - offsetY - (overscroll + margin) * scaling;
+    const visMaxY = -Math.abs(skillTree.min_y) - offsetY + (h + overscroll + margin) * scaling;
     const inView = (wx: number, wy: number) => wx >= visMinX && wx <= visMaxX && wy >= visMinY && wy <= visMaxY;
 
     const connected: Record<string, boolean> = {};
@@ -403,11 +410,13 @@
 
     cursor = hoveredNode?.isJewelSocket ? 'pointer' : 'unset';
 
+    context.restore();
+
     context.fillStyle = '#ffffff';
     context.textAlign = 'right';
     context.font = '12px Roboto';
     const end = performance.now();
-    context.fillText(`${(end - start).toFixed(1)}ms`, w - 5, 17);
+    context.fillText(`${(end - start).toFixed(1)}ms`, cw - 5, overscroll + 17);
 
     if (highlighted.length > 0 || highlightJewels) {
       scheduleRender();
@@ -430,7 +439,7 @@
     startY = offsetY;
     dragPixelX = 0;
     dragPixelY = 0;
-    mousePos = { x: event.offsetX, y: event.offsetY };
+    mousePos = { x: event.clientX, y: event.clientY };
     if (hoveredNode) clickNode(hoveredNode);
   };
 
@@ -443,7 +452,7 @@
       dragPixelX = 0;
       dragPixelY = 0;
       if (canvasEl) canvasEl.style.transform = '';
-      mousePos = { x: event.offsetX, y: event.offsetY };
+      mousePos = { x: event.clientX, y: event.clientY };
       scheduleRender();
     }
   };
@@ -456,7 +465,7 @@
       // No redraw — canvas content is unchanged, just shifted by CSS
       return;
     }
-    mousePos = { x: event.offsetX, y: event.offsetY };
+    mousePos = { x: event.clientX, y: event.clientY };
     scheduleRender();
   };
 
@@ -483,8 +492,8 @@
     width = window.innerWidth;
     height = window.innerHeight;
     if (canvasEl) {
-      canvasEl.width = width;
-      canvasEl.height = height;
+      canvasEl.width = width + 2 * overscroll;
+      canvasEl.height = height + 2 * overscroll;
     }
     scheduleRender();
   };
@@ -506,7 +515,10 @@
 
 <svelte:window on:pointerup={mouseUp} on:pointermove={mouseMove} on:resize={resize} />
 
-<div style="touch-action: none; cursor: {cursor}" on:pointerdown={mouseDown} on:wheel={onScroll}>
-  <canvas bind:this={canvasEl} style="display: block;" />
+<div
+  style="touch-action: none; cursor: {cursor}; position: relative; overflow: hidden; width: 100vw; height: 100vh;"
+  on:pointerdown={mouseDown}
+  on:wheel={onScroll}>
+  <canvas bind:this={canvasEl} style="position: absolute; left: -{overscroll}px; top: -{overscroll}px;" />
   <slot />
 </div>
