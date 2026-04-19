@@ -656,16 +656,16 @@
                 {#if Object.keys(selectedStats).length > 0}
                   <div class="mt-4 flex flex-col overflow-auto min-h-[100px]">
                     {#each Object.keys(selectedStats) as s}
-                      <div class="mb-4 flex flex-row items-start flex-col border-neutral-100/40 border-b pb-4">
+                      <div class="pt-2 pb-2 flex flex-row items-start flex-col border-neutral-100/40 border-b">
                         <div>
                           <button
-                            class="p-2 px-4 bg-red-500/40 rounded mr-2"
+                            class="p-1 px-4 bg-red-500/40 rounded mr-2"
                             on:click={() => removeStat(selectedStats[s].id)}>
                             -
                           </button>
                           <span>{translateStat(selectedStats[s].id)}</span>
                         </div>
-                        <div class="mt-2 flex flex-row">
+                        <div class="pt-1 pb-1 pr-4 flex flex-row">
                           <div class="mr-4 flex flex-row items-center">
                             <div class="mr-2">Min:</div>
                             <input type="number" min="0" bind:value={selectedStats[s].min} />
@@ -675,7 +675,7 @@
                             <input type="number" min="0" bind:value={selectedStats[s].max} />
                           </div>
                           <div class="flex flex-row items-center">
-                            <div class="mr-2">Weight:</div>
+                            <div class="mr-4">Weight:</div>
                             <input type="number" min="0" bind:value={selectedStats[s].weight} />
                           </div>
                         </div>
