@@ -1,7 +1,7 @@
 import json, gzip
 
-additions = json.loads(gzip.open('./data/alternate_passive_additions.json.gz').read())
-skills = json.loads(gzip.open('./data/alternate_passive_skills.json.gz').read())
+additions = json.loads(gzip.open('./data/raw/AlternatePassiveAdditions.json.gz').read())
+skills = json.loads(gzip.open('./data/raw/AlternatePassiveSkills.json.gz').read())
 
 result = {}
 KEYSTONE = 4
@@ -15,6 +15,6 @@ for item in additions + skills:
         result[key][str(sk)] = sk
 
 output = json.dumps(result, separators=(',', ':'))
-with gzip.open('./data/possible_stats.json.gz', 'wt', encoding='utf-8') as f:
+with gzip.open('./data/possible_stats.generated.json.gz', 'wt', encoding='utf-8') as f:
     f.write(output)
 print('Done')

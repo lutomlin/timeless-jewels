@@ -9,7 +9,7 @@ import (
 	_ "embed"
 )
 
-//go:embed alternate_passive_additions.json.gz
+//go:embed raw/AlternatePassiveAdditions.json.gz
 var alternatePassiveAdditionsGz []byte
 var AlternatePassiveAdditions []*AlternatePassiveAddition
 
@@ -18,7 +18,7 @@ var (
 	reverseAlternatePassiveAdditions = make(map[PassiveSkillType]map[uint32][]*AlternatePassiveAddition)
 )
 
-//go:embed alternate_passive_skills.json.gz
+//go:embed raw/AlternatePassiveSkills.json.gz
 var alternatePassiveSkillsGz []byte
 var AlternatePassiveSkills []*AlternatePassiveSkill
 
@@ -27,25 +27,25 @@ var (
 	reverseAlternatePassiveSkills = make(map[PassiveSkillType]map[uint32][]*AlternatePassiveSkill)
 )
 
-//go:embed alternate_tree_versions.json.gz
+//go:embed raw/AlternateTreeVersions.json.gz
 var alternateTreeVersionsGz []byte
 var AlternateTreeVersions []*AlternateTreeVersion
 
 var idToAlternateTreeVersion = make(map[uint32]*AlternateTreeVersion)
 
-//go:embed passive_skills.json.gz
+//go:embed raw/PassiveSkills.json.gz
 var passiveSkillsGz []byte
 var PassiveSkills []*PassiveSkill
 
 var idToPassiveSkill = make(map[uint32]*PassiveSkill)
 
-//go:embed stats.json.gz
+//go:embed raw/Stats.json.gz
 var statsGz []byte
 var Stats []*Stat
 
 var idToStat = make(map[uint32]*Stat)
 
-//go:embed SkillTree.json.gz
+//go:embed tree/data.json.gz
 var skillTreeGz []byte
 
 var (
@@ -53,19 +53,19 @@ var (
 	SkillTreeData SkillTree
 )
 
-//go:embed stat_descriptions.json.gz
+//go:embed stat_translations/en/stat_descriptions.json.gz
 var statTranslationsGz []byte
 var StatTranslationsJSON []byte
 
-//go:embed passive_skill_stat_descriptions.json.gz
+//go:embed stat_translations/en/passive_skill_stat_descriptions.json.gz
 var passiveSkillStatTranslationsGz []byte
 var PassiveSkillStatTranslationsJSON []byte
 
-//go:embed passive_skill_aura_stat_descriptions.json.gz
+//go:embed stat_translations/en/passive_skill_aura_stat_descriptions.json.gz
 var passiveSkillAuraStatTranslationsGz []byte
 var PassiveSkillAuraStatTranslationsJSON []byte
 
-//go:embed possible_stats.json.gz
+//go:embed possible_stats.generated.json.gz
 var possibleStatsGz []byte
 var PossibleStatsJSON []byte
 
