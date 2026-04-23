@@ -476,13 +476,13 @@
   const onScroll = (event: WheelEvent) => {
     if (event.deltaY > 0) {
       if (scaling < 30) {
-        offsetX += event.offsetX;
-        offsetY += event.offsetY;
+        offsetX += event.clientX;
+        offsetY += event.clientY;
       }
     } else {
       if (scaling > 3) {
-        offsetX -= event.offsetX;
-        offsetY -= event.offsetY;
+        offsetX -= event.clientX;
+        offsetY -= event.clientY;
       }
     }
     scaling = Math.min(30, Math.max(3, scaling + event.deltaY / 100));
