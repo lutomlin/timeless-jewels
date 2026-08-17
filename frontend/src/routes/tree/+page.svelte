@@ -530,7 +530,8 @@
   {clickNode}
   {circledNode}
   selectedJewel={selectedJewel?.value}
-  selectedConqueror={isAnyConqueror ? undefined : selectedConqueror?.value}
+  selectedConqueror={isAnyConqueror ? conquerors[0]?.value : selectedConqueror?.value}
+  anyConqueror={isAnyConqueror}
   {highlighted}
   {seed}
   highlightJewels={!circledNode}
