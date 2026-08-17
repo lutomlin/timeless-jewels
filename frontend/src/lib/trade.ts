@@ -183,7 +183,7 @@ export const constructQuery = <T extends SeedRef>(
 
   return {
     query: {
-      status: { option: isLegacyTradersMode ? 'online' : 'any' },
+      status: { option: isLegacyTradersMode ? 'available' : 'any' },
       stats: final_query
     },
     sort: { price: 'asc' }
