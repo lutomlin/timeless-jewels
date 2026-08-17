@@ -25,6 +25,9 @@
 
   export let selectedJewel: number;
   export let selectedConqueror: string;
+  // Under "Any" the conqueror above is an arbitrary stand-in. That is exact for
+  // every node except keystones, which are the only conqueror-dependent ones.
+  export let anyConqueror = false;
   export let seed: number;
   export let highlighted: number[] = [];
   export let disabled: number[] = [];
@@ -346,6 +349,7 @@
         seed &&
         selectedJewel &&
         selectedConqueror &&
+        !(anyConqueror && hoveredNode.isKeystone) &&
         affectedSkills.has(hoveredNode.skill)
       ) {
         const result = calculator.Calculate(
