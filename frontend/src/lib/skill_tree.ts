@@ -309,6 +309,7 @@ export const getStat = (id: number | string): Stat => {
 
 export interface StatConfig {
   min: number;
+  max: number;
   id: number;
   weight: number;
 }
@@ -317,6 +318,8 @@ export interface ReverseSearchConfig {
   jewel: number;
   conqueror: string;
   nodes: number[];
+  anointNodes: number[];
+  anoints: number;
   stats: StatConfig[];
   minTotalWeight: number;
 }
