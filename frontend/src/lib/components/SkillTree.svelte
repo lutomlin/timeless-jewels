@@ -3,7 +3,7 @@
   import type { RenderFunc, Node } from '../skill_tree_types';
   import {
     baseJewelRadius,
-    calculateNodePos,
+    nodeWorldPositions,
     distance,
     drawnGroups,
     drawnNodes,
@@ -32,6 +32,11 @@
   export let highlighted: number[] = [];
   export let disabled: number[] = [];
   export let highlightJewels = false;
+
+  // Both are scanned once per node per frame, so linear indexOf over them showed
+  // up as real cost on a tree this size.
+  $: highlightedSet = new Set(highlighted);
+  $: disabledSet = new Set(disabled);
 
   const slowTime = derived(t, (values) => {
     if ((!highlighted || !highlighted.length) && !highlightJewels) {
@@ -155,6 +160,16 @@
 
   let hoveredNode: Node | undefined;
 
+  // Calculate is pure in (passive, seed, jewel, conqueror), so the tooltip can
+  // memoise per passive and drop the cache whenever the other three change.
+  let calculateCache: Record<number, ReturnType<typeof calculator.Calculate>> = {};
+  $: {
+    seed;
+    selectedJewel;
+    selectedConqueror;
+    calculateCache = {};
+  }
+
   // Every node in the socket's radius, whether or not it is currently selected.
   // Deselected nodes are still transformed by the jewel, so the tooltip should
   // show what they would become.
@@ -190,7 +205,8 @@
     Object.keys(drawnNodes).forEach((nodeId) => {
       const node = drawnNodes[nodeId];
       const angle = orbitAngleAt(node.orbit, node.orbitIndex);
-      const rotatedPos = calculateNodePos(node, offsetX, offsetY, scaling);
+      const wp = nodeWorldPositions[parseInt(nodeId)];
+      const rotatedPos = toCanvasCoords(wp.x, wp.y, offsetX, offsetY, scaling);
 
       node.out?.forEach((o) => {
         if (!drawnNodes[parseInt(o)]) {
@@ -217,7 +233,8 @@
         }
 
         const targetAngle = orbitAngleAt(targetNode.orbit, targetNode.orbitIndex);
-        const targetRotatedPos = calculateNodePos(targetNode, offsetX, offsetY, scaling);
+        const twp = nodeWorldPositions[parseInt(o)];
+        const targetRotatedPos = toCanvasCoords(twp.x, twp.y, offsetX, offsetY, scaling);
 
         context.beginPath();
 
@@ -249,14 +266,16 @@
 
     let circledNodePos: Point;
     if (circledNode) {
-      circledNodePos = calculateNodePos(drawnNodes[circledNode], offsetX, offsetY, scaling);
+      const cwp = nodeWorldPositions[circledNode];
+      circledNodePos = toCanvasCoords(cwp.x, cwp.y, offsetX, offsetY, scaling);
       context.strokeStyle = '#ad2b2b';
     }
 
     let newHoverNode: Node | undefined;
     Object.keys(drawnNodes).forEach((nodeId) => {
       const node = drawnNodes[nodeId];
-      const rotatedPos = calculateNodePos(node, offsetX, offsetY, scaling);
+      const wp2 = nodeWorldPositions[parseInt(nodeId)];
+      const rotatedPos = toCanvasCoords(wp2.x, wp2.y, offsetX, offsetY, scaling);
       let touchDistance = 0;
 
       let active = false;
@@ -266,7 +285,7 @@
         }
       }
 
-      if (disabled.indexOf(node.skill) >= 0) {
+      if (disabledSet.has(node.skill)) {
         active = false;
       }
 
@@ -313,7 +332,7 @@
         }
       }
 
-      if (highlighted.indexOf(node.skill) >= 0 || (highlightJewels && node.isJewelSocket)) {
+      if (highlightedSet.has(node.skill) || (highlightJewels && node.isJewelSocket)) {
         context.strokeStyle = `hsl(${$slowTime}, 100%, 50%)`;
         context.lineWidth = 3;
         context.beginPath();
@@ -352,12 +371,11 @@
         !(anyConqueror && hoveredNode.isKeystone) &&
         affectedSkills.has(hoveredNode.skill)
       ) {
-        const result = calculator.Calculate(
-          data.TreeToPassive[hoveredNode.skill].Index,
-          seed,
-          selectedJewel,
-          selectedConqueror
-        );
+        const passiveIndex = data.TreeToPassive[hoveredNode.skill].Index;
+        if (!(passiveIndex in calculateCache)) {
+          calculateCache[passiveIndex] = calculator.Calculate(passiveIndex, seed, selectedJewel, selectedConqueror);
+        }
+        const result = calculateCache[passiveIndex];
 
         if (result) {
           // Keep the original stats above and append the transformed ones, so
