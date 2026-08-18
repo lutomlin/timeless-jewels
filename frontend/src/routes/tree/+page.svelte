@@ -54,22 +54,21 @@
     ? getAffectedNodes(skillTree.nodes[circledNode]).filter((n) => !n.isJewelSocket && !n.isMastery)
     : [];
 
+  // Under "Any" every conqueror gives identical rolls for non-keystone nodes, so
+  // the preview uses a stand-in and drops the keystones the conqueror decides.
+  $: seedConqueror = isAnyConqueror ? conquerors[0]?.value : selectedConqueror?.value;
   $: seedResults =
     !seed ||
     !selectedJewel ||
-    !selectedConqueror ||
-    Object.keys(data.TimelessJewelConquerors[selectedJewel.value]).indexOf(selectedConqueror.value) < 0
+    !seedConqueror ||
+    Object.keys(data.TimelessJewelConquerors[selectedJewel.value]).indexOf(seedConqueror) < 0
       ? []
       : affectedNodes
           .filter((n) => !!data.TreeToPassive[n.skill])
+          .filter((n) => !isAnyConqueror || !n.isKeystone)
           .map((n) => ({
             node: n.skill,
-            result: calculator.Calculate(
-              data.TreeToPassive[n.skill].Index,
-              seed,
-              selectedJewel.value,
-              selectedConqueror.value
-            )
+            result: calculator.Calculate(data.TreeToPassive[n.skill].Index, seed, selectedJewel.value, seedConqueror)
           }));
 
   let selectedStats: Record<number, StatConfig> = {};
@@ -87,11 +86,6 @@
 
   let mode = searchParams.has('mode') ? searchParams.get('mode') : '';
 
-  // "Any" has no meaning for a single-seed preview: that view renders the
-  // keystone, which is exactly the part the conqueror decides.
-  $: if (isAnyConqueror && mode === 'seed') {
-    mode = 'stats';
-  }
 
   let disabled = new Set<number>();
 
@@ -510,6 +504,18 @@
       ? constructQueries(searchJewel, searchConqueror, searchResults.raw, isLegacyTradersMode)
       : [];
 
+  // A manually entered seed is just a one-seed result set, so the same builder
+  // applies. "Any" passes null to match every conqueror, as the search does.
+  $: seedTradeQuery =
+    selectedJewel && selectedConqueror && seedResults.length
+      ? constructQueries(
+          selectedJewel.value,
+          isAnyConqueror ? null : selectedConqueror.value,
+          [{ seed }],
+          isLegacyTradersMode
+        )[0]
+      : undefined;
+
   $: tradeBatchSize = seedsPerQuery(searchJewel, searchConqueror);
   $: tradeBatchSizes = tradeQueries.map((_, i) =>
     Math.min(tradeBatchSize, searchResults.raw.length - i * tradeBatchSize)
@@ -615,8 +621,7 @@
                 <button
                   class="selection-button"
                   class:selected={mode === 'seed'}
-                  on:click={() => setMode('seed')}
-                  disabled={isAnyConqueror}>
+                  on:click={() => setMode('seed')}>
                   Enter Seed
                 </button>
                 <button class="selection-button" class:selected={mode === 'stats'} on:click={() => setMode('stats')}>
@@ -642,6 +647,17 @@
                 </div>
 
                 {#if seed >= data.TimelessJewelSeedRanges[selectedJewel.value].Min && seed <= data.TimelessJewelSeedRanges[selectedJewel.value].Max}
+                  <div class="flex flex-row gap-2 mt-4 items-center">
+                    <Select items={leagues} bind:value={league} clearable={false} />
+                    <Select items={platforms} bind:value={platform} clearable={false} />
+                    <button
+                      class="p-2 px-4 bg-blue-500/40 rounded disabled:bg-blue-900/40 whitespace-nowrap"
+                      on:click={() => openQuery(seedTradeQuery, platform.value, league.value)}
+                      disabled={!seedTradeQuery || !league}>
+                      Trade
+                    </button>
+                  </div>
+
                   <div class="flex flex-row mt-4 items-end">
                     <div class="flex-grow">
                       <h3 class="mb-2">Sort Order</h3>
