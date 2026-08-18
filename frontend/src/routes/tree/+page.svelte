@@ -50,6 +50,14 @@
     ? parseInt(searchParams.get('location'))
     : undefined;
 
+  // Declared before the reactive blocks below, which filter on it.
+  let disabled = new Set<number>();
+  if (searchParams.has('disabled')) {
+    searchParams.getAll('disabled').forEach((d) => {
+      disabled.add(parseInt(d));
+    });
+  }
+
   $: affectedNodes = circledNode
     ? getAffectedNodes(skillTree.nodes[circledNode]).filter((n) => !n.isJewelSocket && !n.isMastery)
     : [];
@@ -66,6 +74,9 @@
       : affectedNodes
           .filter((n) => !!data.TreeToPassive[n.skill])
           .filter((n) => !isAnyConqueror || !n.isKeystone)
+          // Deselected nodes are not on the tree, so keep them out of the
+          // listing the same way the stat search does.
+          .filter((n) => !disabled.has(n.skill))
           .map((n) => ({
             node: n.skill,
             result: calculator.Calculate(data.TreeToPassive[n.skill].Index, seed, selectedJewel.value, seedConqueror)
@@ -85,9 +96,6 @@
   }
 
   let mode = searchParams.has('mode') ? searchParams.get('mode') : '';
-
-
-  let disabled = new Set<number>();
 
   const updateUrl = () => {
     const url = new URL(window.location.origin + window.location.pathname);
@@ -109,12 +117,6 @@
     mode = newMode;
     updateUrl();
   };
-
-  if (searchParams.has('disabled')) {
-    searchParams.getAll('disabled').forEach((d) => {
-      disabled.add(parseInt(d));
-    });
-  }
 
   const clickNode = (node: Node) => {
     if (node.isJewelSocket) {
